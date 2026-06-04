@@ -27,7 +27,7 @@ dictation via sox + Groq Whisper.
 ## Install
 
 ```bash
-pi install npm:pi-speech-to-text
+pi install npm:@pankajudhas81/pi-speech-to-text
 ```
 
 ## Commands
