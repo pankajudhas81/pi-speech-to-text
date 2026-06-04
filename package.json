@@ -13,7 +13,7 @@
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/pankajudhas81/pi-voice.git"
+        "url": "git+https://github.com/pankajudhas81/pi-speech-to-text.git"
     },
     "files": [
         "src",
