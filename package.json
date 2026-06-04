@@ -1,0 +1,68 @@
+{
+    "name": "pi-speech-to-text",
+    "version": "1.0.0",
+    "description": "Speech-to-text extension for pi — push-to-talk dictation via sox + Groq Whisper",
+    "keywords": [
+        "groq",
+        "pi",
+        "pi-package",
+        "speech-to-text",
+        "voice",
+        "whisper"
+    ],
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/pankajudhas81/pi-voice.git"
+    },
+    "files": [
+        "src",
+        "dist",
+        "!src/**/*.test.ts"
+    ],
+    "type": "module",
+    "main": "dist/index.js",
+    "module": "src/index.ts",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "scripts": {
+        "build": "tsc",
+        "test": "echo 'no tests yet'",
+        "lint": "oxlint && oxfmt --check .",
+        "lint:fix": "oxlint --fix . && oxfmt --write .",
+        "format": "oxfmt --write .",
+        "prepublishOnly": "pnpm run build"
+    },
+    "dependencies": {
+        "typebox": "^1.1.38"
+    },
+    "devDependencies": {
+        "@earendil-works/pi-coding-agent": "latest",
+        "@earendil-works/pi-tui": "latest",
+        "@types/node": "^25.5.0",
+        "oxfmt": "0.41.0",
+        "oxlint": "1.56.0",
+        "typescript": "^5.0.0"
+    },
+    "peerDependencies": {
+        "@earendil-works/pi-coding-agent": "*",
+        "@earendil-works/pi-tui": "*"
+    },
+    "packageManager": "pnpm@10.32.1",
+    "pi": {
+        "extensions": [
+            "./src/index.ts"
+        ],
+        "skills": [
+            "./skills"
+        ]
+    }
+}
