@@ -6,14 +6,20 @@
  *
  * Shortcut: Ctrl+'  (toggle recording)
  * Commands: /voice, /voice-cancel, /voice-provider, /voice-model,
- *           /voice-mic, /voice-language
+ *           /voice-mic, /voice-language, /voice-terms
  */
 
 import type {
     ExtensionAPI,
     ExtensionContext,
 } from "@earendil-works/pi-coding-agent"
-import { createConfig, PROVIDERS, LANGUAGES } from "./config"
+import {
+    createConfig,
+    mergeTerms,
+    PROVIDERS,
+    LANGUAGES,
+    TERMS_ENV,
+} from "./config"
 import {
     getState,
     hasSox,
@@ -36,6 +42,7 @@ import { normalize } from "./cleanup"
 async function runPipeline(
     ctx: ExtensionContext,
     cfg: ReturnType<typeof createConfig>,
+    withNormalize: boolean,
 ): Promise<void> {
     markProcessing()
     ctx.ui.setStatus("voice", "⏳ Transcribing…")
@@ -58,7 +65,7 @@ async function runPipeline(
 
         let finalText = result.text
 
-        if (cfg.cleanup) {
+        if (withNormalize && cfg.cleanup) {
             ctx.ui.setStatus("voice", "⏳ Normalizing…")
             ctx.ui.notify("Normalizing…", "info")
             const norm = await normalize({
@@ -93,6 +100,7 @@ async function runPipeline(
 async function toggleVoice(
     ctx: ExtensionContext,
     cfg: ReturnType<typeof createConfig>,
+    withNormalize: boolean,
 ): Promise<void> {
     const currentState = getState()
 
@@ -103,7 +111,7 @@ async function toggleVoice(
 
     if (currentState === "recording") {
         // Second press → stop and transcribe
-        await runPipeline(ctx, cfg)
+        await runPipeline(ctx, cfg, withNormalize)
         return
     }
 
@@ -127,12 +135,15 @@ async function toggleVoice(
         },
         async onAutoStop() {
             // auto-stop on silence: run pipeline immediately
-            await runPipeline(ctx, cfg)
+            await runPipeline(ctx, cfg, withNormalize)
         },
     })
 
     if (started) {
-        ctx.ui.setStatus("voice", "🔴 Recording… (Ctrl+' to stop)")
+        ctx.ui.setStatus(
+            "voice",
+            "🔴 Recording… (Ctrl+' clean · Ctrl+Shift+' raw)",
+        )
         ctx.ui.notify("🎙 Recording — speak now", "info")
     } else {
         ctx.ui.notify("Could not start recording", "error")
@@ -150,7 +161,15 @@ export default function voiceExtension(pi: ExtensionAPI): void {
     pi.registerShortcut("ctrl+'", {
         description: "Toggle voice recording",
         handler: async (ctx) => {
-            await toggleVoice(ctx, cfg)
+            await toggleVoice(ctx, cfg, true)
+        },
+    })
+
+    // ── Shortcut: Ctrl+Shift+' ──────────────────────────────────────
+    pi.registerShortcut("ctrl+shift+'", {
+        description: "Toggle voice recording (no cleanup)",
+        handler: async (ctx) => {
+            await toggleVoice(ctx, cfg, false)
         },
     })
 
@@ -158,7 +177,7 @@ export default function voiceExtension(pi: ExtensionAPI): void {
     pi.registerCommand("voice", {
         description: "Toggle voice recording (start / stop+transcribe)",
         handler: async (_args, ctx) => {
-            await toggleVoice(ctx, cfg)
+            await toggleVoice(ctx, cfg, true)
         },
     })
 
@@ -269,6 +288,56 @@ export default function voiceExtension(pi: ExtensionAPI): void {
                 cfg.setLanguage(lang.value)
                 ctx.ui.notify(`Language → ${lang.title}`, "info")
             }
+        },
+    })
+
+    // ── /voice-terms — manage custom vocabulary (known words) ───────
+    pi.registerCommand("voice-terms", {
+        description: "Manage custom vocabulary (known words) for transcription",
+        handler: async (args, ctx) => {
+            // Inline form: /voice-terms yuyudhan, GitNexus, kanata
+            const inline = args.trim()
+            if (inline) {
+                cfg.setCustomTerms(inline)
+                const saved = cfg.savedTerms
+                ctx.ui.notify(
+                    saved ? `Custom terms → ${saved}` : "Custom terms cleared",
+                    "info",
+                )
+                return
+            }
+
+            // Menu form: /voice-terms (no args)
+            const saved = cfg.savedTerms
+            const envTerms = mergeTerms(process.env[TERMS_ENV] ?? "")
+            const title =
+                `Custom terms — saved: ${saved || "(none)"}` +
+                (envTerms ? `  |  ${TERMS_ENV}: ${envTerms}` : "")
+            const action = await ctx.ui.select(title, [
+                "Edit saved terms…",
+                "Clear saved terms",
+                "Cancel",
+            ])
+            if (!action || action === "Cancel") return
+
+            if (action === "Clear saved terms") {
+                cfg.setCustomTerms("")
+                ctx.ui.notify("Saved custom terms cleared", "info")
+                return
+            }
+
+            const entered = await ctx.ui.input(
+                "Custom terms (comma-separated)",
+                "yuyudhan, GitNexus, TypeScript, kanata",
+            )
+            if (entered === undefined) return // cancelled
+
+            cfg.setCustomTerms(entered)
+            const next = cfg.savedTerms
+            ctx.ui.notify(
+                next ? `Custom terms → ${next}` : "Custom terms cleared",
+                "info",
+            )
         },
     })
 

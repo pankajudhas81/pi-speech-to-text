@@ -78,6 +78,47 @@ export const LANGUAGES = [
 ] as const
 
 // ---------------------------------------------------------------------------
+// Custom terms (known words / vocabulary biasing)
+// ---------------------------------------------------------------------------
+
+/**
+ * Environment variable that supplies custom transcription terms. Lets users
+ * ship a shared vocabulary via their shell config / version-controlled
+ * dotfiles without touching the per-user prefs file.
+ */
+export const TERMS_ENV = "PI_VOICE_TERMS"
+
+/**
+ * Split a raw terms string into individual entries. Accepts commas and/or
+ * newlines as separators, trims whitespace, and drops empties.
+ */
+export function parseTerms(raw: string): string[] {
+    return raw
+        .split(/[\n,]+/)
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0)
+}
+
+/**
+ * Merge one or more raw terms strings into a single comma-separated list,
+ * de-duplicated case-insensitively while preserving first-seen order.
+ */
+export function mergeTerms(...sources: string[]): string {
+    const seen = new Set<string>()
+    const out: string[] = []
+    for (const src of sources) {
+        for (const term of parseTerms(src)) {
+            const key = term.toLowerCase()
+            if (!seen.has(key)) {
+                seen.add(key)
+                out.push(term)
+            }
+        }
+    }
+    return out.join(", ")
+}
+
+// ---------------------------------------------------------------------------
 // Preferences file (persisted runtime selections)
 // ---------------------------------------------------------------------------
 
@@ -93,6 +134,7 @@ interface Prefs {
     models?: Record<string, string> // per-provider model
     mic?: string
     language?: string
+    customTerms?: string // known words / vocabulary biasing
 }
 
 function loadPrefs(): Prefs {
@@ -127,7 +169,10 @@ export interface VoiceConfig {
     readonly apiKey: string | null
     readonly model: string
     readonly language: string
+    /** Merged terms (env + prefs) used to bias transcription + cleanup. */
     readonly customTerms: string
+    /** Only the prefs-stored terms — what `/voice-terms` edits. */
+    readonly savedTerms: string
     readonly cleanup: boolean
     readonly cleanupEndpoint: string
     readonly cleanupModel: string
@@ -140,6 +185,7 @@ export interface VoiceConfig {
     setModel(v: string): void
     setLanguage(v: string): void
     setMic(v: string): void
+    setCustomTerms(v: string): void
 }
 
 const DEFAULT_PROVIDER = "groq"
@@ -178,7 +224,13 @@ export function createConfig(): VoiceConfig {
             return prefs.language ?? ""
         },
         get customTerms() {
-            return ""
+            return mergeTerms(
+                process.env[TERMS_ENV] ?? "",
+                prefs.customTerms ?? "",
+            )
+        },
+        get savedTerms() {
+            return prefs.customTerms ?? ""
         },
         get cleanup() {
             return true
@@ -220,6 +272,10 @@ export function createConfig(): VoiceConfig {
         },
         setMic(v: string) {
             prefs.mic = v
+            savePrefs(prefs)
+        },
+        setCustomTerms(v: string) {
+            prefs.customTerms = mergeTerms(v)
             savePrefs(prefs)
         },
     }

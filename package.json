@@ -1,5 +1,5 @@
 {
-    "name": "@pankajudhas81/pi-speech-to-text",
+    "name": "pi-speech-to-text",
     "version": "0.1.0",
     "description": "Speech-to-text extension for pi — push-to-talk dictation via sox + Groq Whisper",
     "keywords": [
