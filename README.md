@@ -1,5 +1,27 @@
 # pi-speech-to-text
 
+> [!IMPORTANT]
+> **This project is no longer maintained.** The package keeps working as it
+> is, but it won't get updates or fixes, and issues and pull requests won't be
+> reviewed. Very good speech-to-text tools now exist for pi and elsewhere, so
+> there's no need for another one.
+>
+> **Try these instead:**
+>
+> - **[Simple Voice](https://github.com/yuyudhan/simple-voice)** — our free,
+>   open-source macOS dictation app. It works in every app, including pi,
+>   runs on-device by default and sends no data. Install:
+>   `curl -fsSL https://github.com/yuyudhan/simple-voice/releases/latest/download/install.sh | bash`
+> - **[FluidVoice](https://github.com/altic-dev/FluidVoice)** — open-source
+>   macOS dictation with on-device speech-to-text.
+> - **[Wispr Flow](https://wisprflow.ai)** — a polished commercial dictation
+>   app for macOS, Windows and iOS.
+> - **Inside pi:**
+>   [`@juicesharp/rpiv-voice`](https://www.npmjs.com/package/@juicesharp/rpiv-voice)
+>   (local Whisper, no API key) or
+>   [`privateer-speak`](https://pi.dev/packages/privateer-speak) (voice in and
+>   out) — browse more at [pi.dev/packages](https://pi.dev/packages).
+
 Speech-to-text extension for [pi](https://pi.dev) — push-to-talk
 dictation via sox + Groq Whisper.
 
